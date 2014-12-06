@@ -1,15 +1,6 @@
 (function() {
     "use strict";
 
-    var baseGrid = [
-        [0, 1, 0],
-        [1, 0, 1],
-        [0, 1, 0],
-    ];
-
-    var maxLevel = 6;
-    var minCellSize = 1;
-    var totalSize = minCellSize * baseGrid.length * Math.pow(3, maxLevel - 1);
 
     function fillCells(size) {
         var grid = [];
@@ -88,14 +79,13 @@
         return newGrid;
     }
 
-    function renderGrid(element, grid) {
+    function renderGrid(element, totalSize, grid) {
         var canvas = $("<canvas>");
         canvas.attr('height', totalSize);
         canvas.attr('width', totalSize);
         canvas.css({
             display: 'inline-block',
-            border: '5px solid #EEF8FF',
-            margin: '20px'
+            margin: '30px'
         });
 
         var ctx = canvas[0].getContext('2d');
@@ -113,21 +103,91 @@
         }
 
         element.append(canvas);
+
+        return canvas;
     }
 
-    function start() {
-        var element = $('[data-nine]');
-        element.empty();
+    function renderIterations(containingEl, totalSize, grid, nIterations) {
+        console.log('renderIterations', totalSize, nIterations, grid);
+        containingEl.empty();
 
-        var grid = baseGrid;
-        renderGrid(element, grid);
-        for (var i = 1; i < maxLevel; i++) {
+        for (var i = 1; i < nIterations; i++) {
             grid = nextGrid(grid);
-            renderGrid(element, grid);
+            renderGrid(containingEl, totalSize, grid);
         }
     }
 
+    function bindClick(cell, i, j, onClick) {
+        cell.click(function(e) {
+            e.preventDefault();
+            onClick(cell, i, j);
+        });
+    }
+
+    function renderStartingGrid(containingEl, totalSize, startingGrid, updateFn) {
+        var numCells = startingGrid.length;
+        var cellSize = totalSize / numCells;
+
+        var table = $("<table>", {
+            cellpadding: 0,
+            cellspacing: 0
+        });
+
+        function getColor(i, j) {
+            return startingGrid[i][j] === 1 ? 'white' : 'black';
+        }
+
+        for (var i = 0; i < numCells; i++) {
+            var row = $("<tr>");
+            for (var j = 0; j < numCells; j++) {
+                var cell = $("<td>", {
+                    width: cellSize,
+                    height: cellSize
+                });
+                cell.css({'background-color': getColor(i, j)});
+
+                bindClick(cell, i, j, function(cell, i, j) {
+                    startingGrid[i][j] = reverse(startingGrid[i][j]);
+                    cell.css({'background-color': getColor(i, j)});
+                    updateFn(startingGrid);
+                });
+
+                row.append(cell);
+            }
+            table.append(row);
+        }
+
+        containingEl.empty();
+        containingEl.append($("<span>Click on the squares:</span>"));
+        containingEl.append(table);
+    }
+
+    function start(rootElement) {
+        rootElement.empty();
+
+        var startingGridContainer = $("<div>");
+        var iterationContainer = $("<div>");
+
+        rootElement.append(startingGridContainer);
+        rootElement.append(iterationContainer);
+
+        var startingGrid = [
+            [0, 1, 0],
+            [1, 0, 1],
+            [0, 1, 0],
+        ];
+        var nIterations = 5;
+        var minCellSize = 1;
+        var totalSize = minCellSize * startingGrid.length * Math.pow(3, nIterations);
+
+        renderStartingGrid(startingGridContainer, totalSize, startingGrid, function(newGrid) {
+            renderIterations(iterationContainer, totalSize, newGrid, nIterations);
+        });
+
+        renderIterations(iterationContainer, totalSize, startingGrid, nIterations);
+    }
+
     $(document).ready(function() {
-        start();
+        start($('[data-nine]'));
     });
 }());
